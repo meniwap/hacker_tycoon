@@ -14,6 +14,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
+    html { touch-action: manipulation; } /* או על הכפתור בלבד */
     /* --- Hacker theme extra styles --- */
     body {
       background: #000;
@@ -98,7 +99,8 @@
         fiveCats:  { name: 'Own 5 Cats', earned: false }
       }
     };
-
+    const hackBtn = document.getElementById('hackBtn');
+    hackBtn.addEventListener('dblclick', e => e.preventDefault());  // NEW
     // ---------- Helpers ----------
     function format(num) { return num.toLocaleString('en-US'); }
     function save()   { localStorage.setItem('hackerTycoonSave', JSON.stringify(game)); }
