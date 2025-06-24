@@ -4,7 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hacker Tycoon</title>
+
+  <!-- Tailwind CDN -->
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@^3.3/dist/tailwind.min.css" rel="stylesheet" />
+
+  <!-- *** חובה: SDK של טלגרם – הוסף תמיד לפני הסקריפט שלך *** -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
   <style>
     /* --- Hacker theme extra styles --- */
     body {
@@ -13,41 +19,27 @@
       font-family: 'Courier New', monospace;
       text-shadow: 0 0 3px #39ff14;
     }
-    .neon-border {
-      border: 2px solid #39ff14;
-      box-shadow: 0 0 6px #39ff14;
-    }
-    .pulse {
-      animation: pulse 1s infinite;
-    }
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.07); }
-      100% { transform: scale(1); }
-    }
-    .toast {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.9);
-      padding: 12px 24px;
-      border: 1px solid #39ff14;
-      border-radius: 0.5rem;
-      opacity: 0;
-      transition: opacity 0.4s ease;
-    }
-    .toast.show { opacity: 1; }
+    .neon-border { border: 2px solid #39ff14; box-shadow: 0 0 6px #39ff14; }
+    .pulse { animation: pulse 1s infinite; }
+    @keyframes pulse { 0%{transform:scale(1)} 50%{transform:scale(1.07)} 100%{transform:scale(1)} }
+    .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+             background:rgba(0,0,0,0.9); padding:12px 24px; border:1px solid #39ff14;
+             border-radius:0.5rem; opacity:0; transition:opacity .4s ease; }
+    .toast.show { opacity:1; }
   </style>
 </head>
+
 <body class="min-h-screen flex flex-col items-center p-4">
+
   <h1 class="text-3xl md:text-5xl mb-6 font-bold text-center">Hacker Tycoon</h1>
 
   <!-- Money Display -->
   <div id="moneyDisplay" class="text-2xl md:text-3xl mb-4">$0</div>
 
   <!-- Hack Button -->
-  <button id="hackBtn" class="neon-border px-8 py-4 text-xl md:text-2xl mb-8 pulse focus:outline-none">HACK!</button>
+  <button id="hackBtn" class="neon-border px-8 py-4 text-xl md:text-2xl mb-8 pulse focus:outline-none">
+    HACK!
+  </button>
 
   <!-- Upgrades & Info Panels -->
   <div class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -62,7 +54,9 @@
       <h2 class="text-xl mb-2">Achievements</h2>
       <ul id="achievementsList" class="space-y-2 mb-6"></ul>
 
-      <button id="prestigeBtn" class="neon-border px-4 py-2 text-sm md:text-base">RESET (Prestige)</button>
+      <button id="prestigeBtn" class="neon-border px-4 py-2 text-sm md:text-base">
+        RESET&nbsp;(Prestige)
+      </button>
       <div id="prestigeInfo" class="mt-2 text-sm"></div>
     </div>
   </div>
@@ -71,9 +65,19 @@
   <div id="toast" class="toast"></div>
 
   <!-- Audio (optional) -->
-  <audio id="clickSfx" src="https://assets.mixkit.co/sfx/preview/mixkit-typewriter-single-hit-1369.mp3" preload="auto"></audio>
+  <audio id="clickSfx"
+    src="https://assets.mixkit.co/sfx/preview/mixkit-typewriter-single-hit-1369.mp3"
+    preload="auto"></audio>
 
   <script>
+    /* === אתחול טלגרם – חייב לרוץ לפני כל קוד משחק === */
+    const tg = window.Telegram.WebApp;
+    tg.ready();          // מודיע לטלגרם שהאפליקציה נטענה
+    tg.expand();         // מנסה לפתוח למסך-מלא כשהמכשיר מאפשר
+    // סנכרון צבעים עם ערכת-הנושא של המשתמש
+    document.body.style.background = tg.themeParams.bg_color || "#000";
+    document.body.style.color      = tg.themeParams.text_color || "#39ff14";
+
     // ---------- Game Data ----------
     const game = {
       money: 0,
@@ -81,11 +85,11 @@
       passivePerSecond: 0,
       prestige: 0,
       upgrades: {
-        pc:  { name: 'PCs',      level: 0, baseCost: 15,   clickBonus: 1, income: 0 },
-        gpu: { name: 'GPUs',     level: 0, baseCost: 100,  clickBonus: 0, income: 2 },
-        net: { name: 'Internet', level: 0, baseCost: 250,  clickBonus: 0, income: 5 },
-        cat: { name: 'Cats',     level: 0, baseCost: 50,   clickBonus: 0, income: 1 },
-        skill:{ name:'Skills',   level: 0, baseCost: 75,   clickBonus: 2, income: 0 }
+        pc:  { name: 'PCs',      level: 0, baseCost: 15,  clickBonus: 1, income: 0 },
+        gpu: { name: 'GPUs',     level: 0, baseCost: 100, clickBonus: 0, income: 2 },
+        net: { name: 'Internet', level: 0, baseCost: 250, clickBonus: 0, income: 5 },
+        cat: { name: 'Cats',     level: 0, baseCost: 50,  clickBonus: 0, income: 1 },
+        skill:{ name:'Skills',   level: 0, baseCost: 75,  clickBonus: 2, income: 0 }
       },
       achievements: {
         money1000: { name: 'Earn $1,000', earned: false },
@@ -94,133 +98,99 @@
     };
 
     // ---------- Helpers ----------
-    function format(num) {
-      return num.toLocaleString('en-US');
-    }
-
-    function save() {
-      localStorage.setItem('hackerTycoonSave', JSON.stringify(game));
-    }
-
-    function load() {
+    function format(num) { return num.toLocaleString('en-US'); }
+    function save()   { localStorage.setItem('hackerTycoonSave', JSON.stringify(game)); }
+    function load()   {
       const data = JSON.parse(localStorage.getItem('hackerTycoonSave'));
-      if (data) {
-        Object.assign(game, data);
-      }
+      if (data) Object.assign(game, data);
     }
-
-    function cost(base, lvl) {
-      return Math.floor(base * Math.pow(1.15, lvl));
-    }
-
+    function cost(base, lvl) { return Math.floor(base * Math.pow(1.15, lvl)); }
     function showToast(msg) {
       const toast = document.getElementById('toast');
-      toast.textContent = msg;
-      toast.classList.add('show');
+      toast.textContent = msg; toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 3000);
     }
 
-    // ---------- UI Rendering ----------
-    const moneyDisplay = document.getElementById('moneyDisplay');
-    const upgradesList = document.getElementById('upgradesList');
+    // ---------- UI Elements ----------
+    const moneyDisplay     = document.getElementById('moneyDisplay');
+    const upgradesList     = document.getElementById('upgradesList');
     const achievementsList = document.getElementById('achievementsList');
-    const prestigeInfo = document.getElementById('prestigeInfo');
+    const prestigeInfo     = document.getElementById('prestigeInfo');
 
+    // ---------- Rendering ----------
     function render() {
       moneyDisplay.textContent = '$' + format(game.money);
-      prestigeInfo.textContent = `Prestige level: ${game.prestige} ( +${game.prestige * 10}% income )`;
+      prestigeInfo.textContent =
+        `Prestige level: ${game.prestige} (+${game.prestige * 10}% income)`;
 
-      // render upgrades
+      // Upgrades
       upgradesList.innerHTML = '';
       Object.entries(game.upgrades).forEach(([key, up]) => {
         const li = document.createElement('li');
         li.className = 'flex justify-between items-center neon-border px-2 py-1';
         const c = cost(up.baseCost, up.level);
-        li.innerHTML = `<span>${up.name} Lv.${up.level}</span><button data-key="${key}" class="text-sm">Buy ($${format(c)})</button>`;
+        li.innerHTML =
+          `<span>${up.name} Lv.${up.level}</span>` +
+          `<button data-key="${key}" class="text-sm">Buy ($${format(c)})</button>`;
         upgradesList.appendChild(li);
       });
 
-      // render achievements
+      // Achievements
       achievementsList.innerHTML = '';
       Object.values(game.achievements).forEach(ach => {
         const li = document.createElement('li');
         li.textContent = ach.name + (ach.earned ? ' ✅' : '');
-        ach.earned && li.classList.add('text-green-400');
+        if (ach.earned) li.classList.add('text-green-400');
         achievementsList.appendChild(li);
       });
     }
 
-    // ---------- Income & Achievements ----------
+    // ---------- Logic ----------
     function recalcPassive() {
       let passive = 0;
-      Object.values(game.upgrades).forEach(up => {
-        passive += up.income * up.level;
-      });
+      Object.values(game.upgrades).forEach(up => passive += up.income * up.level);
       game.passivePerSecond = passive * (1 + game.prestige * 0.1);
     }
-
     function checkAchievements() {
       if (!game.achievements.money1000.earned && game.money >= 1000) {
-        game.achievements.money1000.earned = true;
-        showToast('Achievement unlocked: Earn $1,000');
+        game.achievements.money1000.earned = true; showToast('Earned $1,000');
       }
       if (!game.achievements.fiveCats.earned && game.upgrades.cat.level >= 5) {
-        game.achievements.fiveCats.earned = true;
-        showToast('Achievement unlocked: Own 5 Cats');
+        game.achievements.fiveCats.earned = true; showToast('Own 5 Cats');
       }
     }
 
-    // ---------- Event Handlers ----------
+    // ---------- Events ----------
     document.getElementById('hackBtn').addEventListener('click', () => {
-      const clickGain = game.cashPerClick * (1 + game.prestige * 0.1);
-      game.money += clickGain;
-      document.getElementById('clickSfx').play();
-      checkAchievements();
-      render();
+      const gain = game.cashPerClick * (1 + game.prestige * 0.1);
+      game.money += gain; document.getElementById('clickSfx').play();
+      checkAchievements(); render();
     });
-
-    upgradesList.addEventListener('click', e => {
-      if (e.target.tagName !== 'BUTTON') return;
-      const key = e.target.dataset.key;
-      const up = game.upgrades[key];
+    upgradesList.addEventListener('click', evt => {
+      if (evt.target.tagName !== 'BUTTON') return;
+      const key = evt.target.dataset.key, up = game.upgrades[key];
       const price = cost(up.baseCost, up.level);
       if (game.money >= price) {
-        game.money -= price;
-        up.level++;
-        game.cashPerClick += up.clickBonus;
-        recalcPassive();
-        checkAchievements();
-        render();
-      } else {
-        showToast('Not enough money!');
-      }
+        game.money -= price; up.level++; game.cashPerClick += up.clickBonus;
+        recalcPassive(); checkAchievements(); render();
+      } else showToast('Not enough money!');
     });
-
     document.getElementById('prestigeBtn').addEventListener('click', () => {
-      if (confirm('Reset and gain Prestige?')) {
-        game.prestige += 1;
-        game.money = 0;
-        game.cashPerClick = 1;
-        Object.values(game.upgrades).forEach(up => up.level = 0);
-        recalcPassive();
-        render();
-      }
+      if (!confirm('Reset and gain Prestige?')) return;
+      game.prestige += 1; game.money = 0; game.cashPerClick = 1;
+      Object.values(game.upgrades).forEach(up => up.level = 0);
+      recalcPassive(); render();
+      /* שולח מידע לבוט (רשותי) */
+      tg.sendData(JSON.stringify({ event: 'prestige', level: game.prestige }));
     });
 
-    // ---------- Main Loop ----------
-    function tick() {
-      game.money += game.passivePerSecond;
-      checkAchievements();
-      render();
-    }
+    // ---------- Loop ----------
+    function tick() { game.money += game.passivePerSecond; checkAchievements(); render(); }
 
-    // ---------- Init ----------
-    load();
-    recalcPassive();
-    render();
-    setInterval(tick, 1000);
-    setInterval(save, 5000);
+    /* ---------- Init ---------- */
+    load(); recalcPassive(); render();
+    setInterval(tick, 1000);  // פסיבי
+    setInterval(save, 5000);  // גיבוי
   </script>
 </body>
 </html>
-
